@@ -1,0 +1,14 @@
+# Development / exploration dependencies (notebooks + figure generation).
+# Install on top of the runtime deps:  pip install -r requirements.txt -r requirements-dev.txt
+
+-r requirements.txt
+
+# notebooks
+jupyter==1.1.1
+jupyterlab==4.5.8
+ipykernel==7.3.0
+ipywidgets==8.1.8
+
+# plotting (docs/figures.py + exploratory notebook)
+matplotlib==3.11.0
+pillow==12.2.0

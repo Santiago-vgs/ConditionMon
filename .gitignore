@@ -1,0 +1,32 @@
+# Data — never commit (large + regenerable)
+data/raw/*
+data/processed/*
+data/predictions/*
+!data/**/.gitkeep
+
+# Models / scalers
+*.joblib
+*.pkl
+
+# Secrets — never commit credentials
+.env
+.env.*
+*accessKeys*.csv
+*credentials*.csv
+.aws/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.vscode/
+
+# Agent / skill tooling (not part of the project)
+.agents/
+.claude/
+.continue/
+skills-lock.json

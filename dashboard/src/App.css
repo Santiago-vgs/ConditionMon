@@ -1,0 +1,256 @@
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* ---- header ---- */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 18px;
+  margin-bottom: 24px;
+}
+.app-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  letter-spacing: -0.02em;
+}
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+.summary {
+  display: flex;
+  gap: 12px;
+}
+.stat {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  text-align: center;
+  min-width: 84px;
+}
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.stat-label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ---- layout ---- */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 24px;
+}
+@media (max-width: 800px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.msg {
+  color: var(--text-dim);
+  padding: 40px 0;
+  text-align: center;
+}
+.msg.error {
+  color: #c44e52;
+}
+
+/* ---- fleet grid ---- */
+.fleet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+.engine-card {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 10px;
+  padding: 14px 12px;
+  text-align: left;
+  color: var(--text);
+  transition: transform 0.08s ease, background 0.15s ease;
+}
+.engine-card:hover {
+  transform: translateY(-2px);
+  background: var(--panel-2);
+}
+.engine-card.selected {
+  outline: 2px solid var(--text-dim);
+}
+.status-dot {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.engine-id {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+.engine-rul {
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.engine-rul .unit {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+.engine-status {
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* ---- alert panel ---- */
+.alert-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  height: fit-content;
+}
+.alert-panel h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.alert-panel .count {
+  background: #c44e52;
+  color: #fff;
+  border-radius: 20px;
+  padding: 1px 9px;
+  font-size: 0.8rem;
+}
+.alert-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.alert-panel li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.alert-panel li:hover {
+  background: var(--panel-2);
+}
+.alert-engine {
+  flex: 1;
+  font-size: 0.88rem;
+}
+.alert-rul {
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+.alert-panel .empty {
+  color: var(--text-dim);
+  font-size: 0.88rem;
+}
+
+/* ---- detail overlay ---- */
+.detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 10;
+}
+.detail-card {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+  width: 100%;
+  max-width: 440px;
+}
+.detail-card h2 {
+  margin: 0;
+}
+.detail-status {
+  font-weight: 700;
+  margin: 4px 0 20px;
+}
+.close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+.detail-stats {
+  display: flex;
+  gap: 32px;
+  margin: 0 0 24px;
+}
+.detail-stats dt {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.detail-stats dd {
+  margin: 4px 0 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+/* ---- gauge ---- */
+.gauge-track {
+  position: relative;
+  height: 14px;
+  background: var(--panel-2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.gauge-fill {
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.3s ease;
+}
+.gauge-mark {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--bg);
+  opacity: 0.7;
+}
+.gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
