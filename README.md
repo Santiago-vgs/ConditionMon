@@ -1,5 +1,7 @@
 # ConditionMon — Turbofan Predictive Maintenance
 
+[![CI](https://github.com/Santiago-vgs/ConditionMon/actions/workflows/ci.yml/badge.svg)](https://github.com/Santiago-vgs/ConditionMon/actions/workflows/ci.yml)
+
 I built ConditionMon to answer a question I kept hitting in interviews: can I take
 a messy ML idea all the way from raw data to something actually running in the cloud?
 
