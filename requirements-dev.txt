@@ -12,3 +12,6 @@ ipywidgets==8.1.8
 # plotting (docs/figures.py + exploratory notebook)
 matplotlib==3.11.0
 pillow==12.2.0
+
+# tests
+pytest==9.1.1
