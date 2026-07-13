@@ -145,12 +145,23 @@ def ensure_api(function_arn: str) -> str:
         api_id = created["ApiId"]
         print(f"  created api {API_NAME} ({api_id})")
 
-    integration = api.create_integration(
-        ApiId=api_id,
-        IntegrationType="AWS_PROXY",
-        IntegrationUri=function_arn,
-        PayloadFormatVersion="2.0",
-    )["IntegrationId"]
+    # Reuse the existing integration if one already points at this function —
+    # creating a new one on every deploy would leave orphan integrations behind.
+    integration = next(
+        (i["IntegrationId"] for i in api.get_integrations(ApiId=api_id)["Items"]
+         if i.get("IntegrationUri") == function_arn),
+        None,
+    )
+    if integration is None:
+        integration = api.create_integration(
+            ApiId=api_id,
+            IntegrationType="AWS_PROXY",
+            IntegrationUri=function_arn,
+            PayloadFormatVersion="2.0",
+        )["IntegrationId"]
+        print(f"  created integration {integration}")
+    else:
+        print(f"  reusing integration {integration}")
 
     routes = {r["RouteKey"]: r for r in api.get_routes(ApiId=api_id)["Items"]}
     if ROUTE not in routes:
