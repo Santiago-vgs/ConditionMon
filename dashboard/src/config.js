@@ -6,10 +6,11 @@ export const API_URL =
   "https://wm0mkptokc.execute-api.us-east-1.amazonaws.com/predictions";
 
 // Status thresholds — must match train.py (RUL < 30 = maintenance, < 60 = warning).
+// Colours are Apple's system palette (systemRed / systemOrange / systemGreen).
 export const STATUS = {
-  MAINTENANCE_REQUIRED: { label: "Maintenance", color: "#C44E52", order: 0 },
-  WARNING: { label: "Warning", color: "#DD8452", order: 1 },
-  OK: { label: "OK", color: "#55A868", order: 2 },
+  MAINTENANCE_REQUIRED: { label: "Maintenance", color: "#FF3B30", tint: "#FFEBEA", order: 0 },
+  WARNING: { label: "Warning", color: "#FF9500", tint: "#FFF3E0", order: 1 },
+  OK: { label: "Healthy", color: "#34C759", tint: "#E6F8EC", order: 2 },
 };
 
 // RUL is trained with a piecewise-linear cap at 125, so that's our gauge max.

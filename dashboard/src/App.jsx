@@ -12,15 +12,29 @@ export default function App() {
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
 
-  // Fetch the fleet once on load.
   useEffect(() => {
     fetchPredictions()
-      .then(setEngines)
+      .then((data) => {
+        setEngines(data);
+        // deep link: #engine-34 opens that engine's sheet directly
+        const m = window.location.hash.match(/^#engine-(\d+)$/);
+        if (m) {
+          const hit = data.find((e) => e.engine_id === Number(m[1]));
+          if (hit) setSelected(hit);
+        }
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
-  // Sort engines by urgency so the worst show first.
+  const select = (engine) => {
+    setSelected(engine);
+    const url = engine
+      ? `#engine-${engine.engine_id}`
+      : window.location.pathname + window.location.search;
+    window.history.replaceState(null, "", url);
+  };
+
   const sorted = useMemo(
     () =>
       [...engines].sort(
@@ -31,7 +45,6 @@ export default function App() {
     [engines]
   );
 
-  // Summary counts for the header stat cards.
   const counts = useMemo(() => {
     const c = { MAINTENANCE_REQUIRED: 0, WARNING: 0, OK: 0 };
     engines.forEach((e) => (c[e.status] = (c[e.status] ?? 0) + 1));
@@ -40,36 +53,38 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <div>
-          <h1>ConditionMon</h1>
-          <p className="subtitle">Turbofan fleet — predicted remaining useful life</p>
-        </div>
-        <div className="summary">
-          <Stat label="Engines" value={engines.length} color="#cbd5e1" />
-          <Stat label="Maintenance" value={counts.MAINTENANCE_REQUIRED} color={STATUS.MAINTENANCE_REQUIRED.color} />
-          <Stat label="Warning" value={counts.WARNING} color={STATUS.WARNING.color} />
-          <Stat label="OK" value={counts.OK} color={STATUS.OK.color} />
-        </div>
+      <header className="head">
+        <h1>Fleet</h1>
+        <p className="sub">Turbofan engines · predicted remaining useful life</p>
       </header>
 
+      {!loading && !error && (
+        <div className="summary">
+          <Stat label="Engines" value={engines.length} color="var(--text)" />
+          <Stat label="Maintenance" value={counts.MAINTENANCE_REQUIRED} color="var(--red)" />
+          <Stat label="Warning" value={counts.WARNING} color="var(--orange)" />
+          <Stat label="Healthy" value={counts.OK} color="var(--green)" />
+        </div>
+      )}
+
       {loading && <p className="msg">Loading fleet…</p>}
-      {error && <p className="msg error">Couldn’t load data: {error}</p>}
+      {error && <p className="msg error">Couldn’t load data — {error}</p>}
 
       {!loading && !error && (
         <div className="layout">
           <main>
+            <h2 className="section">All engines</h2>
             <FleetGrid
               engines={sorted}
-              onSelect={setSelected}
+              onSelect={select}
               selectedId={selected?.engine_id}
             />
           </main>
-          <AlertPanel engines={engines} onSelect={setSelected} />
+          <AlertPanel engines={engines} onSelect={select} />
         </div>
       )}
 
-      <EngineDetail engine={selected} onClose={() => setSelected(null)} />
+      <EngineDetail engine={selected} onClose={() => select(null)} />
     </div>
   );
 }
