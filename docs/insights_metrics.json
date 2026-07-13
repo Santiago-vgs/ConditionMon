@@ -1,0 +1,53 @@
+{
+  "rmse_by_band": {
+    "0-30": 11.15,
+    "30-60": 28.14,
+    "60-90": 25.65,
+    "90-126": 15.75
+  },
+  "conformal": {
+    "coverage": 0.9,
+    "mean_width_critical": 19.7,
+    "mean_width_healthy": 55.1
+  },
+  "phm08_total": 928.3,
+  "threshold_sweep": {
+    "10": {
+      "best_tau": 23,
+      "cost": 1.44
+    },
+    "50": {
+      "best_tau": 23,
+      "cost": 1.44
+    },
+    "100": {
+      "best_tau": 23,
+      "cost": 1.44
+    }
+  },
+  "backtest": {
+    "tau": 23,
+    "caught": 20,
+    "n": 20,
+    "median_lead": 22,
+    "min_lead": 10,
+    "max_lead": 34
+  },
+  "psi": {
+    "sensor_11": 0.348,
+    "sensor_4": 0.347,
+    "sensor_12": 0.31,
+    "sensor_7": 0.293,
+    "sensor_15": 0.291,
+    "sensor_21": 0.282,
+    "sensor_20": 0.272,
+    "sensor_2": 0.25,
+    "sensor_17": 0.229,
+    "sensor_3": 0.222,
+    "sensor_9": 0.203,
+    "sensor_14": 0.192,
+    "sensor_13": 0.18,
+    "sensor_8": 0.175,
+    "sensor_6": 0.004
+  }
+}

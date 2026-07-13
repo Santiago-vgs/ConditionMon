@@ -23,6 +23,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 from xgboost import XGBRegressor
 
+from conformal import apply_conformal, fit_conformal
 from features import feature_columns
 from storage import PREDICTIONS, PROCESSED, Storage, from_args
 
@@ -81,18 +82,25 @@ def report_importances(model, feats: list[str], top: int = 10) -> None:
         print(f"    {name:>22}: {val:.3f}")
 
 
-def score_test(store: Storage, model, feats: list[str]) -> list[dict]:
-    """Predict RUL at each test engine's FINAL observed cycle (the 'now')."""
+def score_test(store: Storage, model, feats: list[str], bands: list[dict]) -> list[dict]:
+    """Predict RUL at each test engine's FINAL observed cycle (the 'now').
+
+    Alongside the point estimate we ship a 90% conformal interval so the
+    consumer sees how certain the model is, not just its best guess.
+    """
     test = store.read_parquet(f"{PROCESSED}/test.parquet")
     last = test.sort_values(CYCLE_COL).groupby(ID_COL).tail(1).sort_values(ID_COL)
     preds = model.predict(last[feats])
+    los, his = apply_conformal(bands, preds)
     out = []
-    for (_, row), pred in zip(last.iterrows(), preds):
+    for (_, row), pred, lo, hi in zip(last.iterrows(), preds, los, his):
         rul = int(round(float(pred)))
         out.append({
             "engine_id": int(row[ID_COL]),
             "current_cycle": int(row[CYCLE_COL]),
             "predicted_rul": rul,
+            "rul_low": int(round(float(lo))),
+            "rul_high": int(round(float(hi))),
             "status": status_for(rul),
         })
     return out
@@ -123,10 +131,18 @@ def run(store: Storage) -> None:
     print("5. Feature importances (best model):")
     report_importances(best, feats)
 
-    print("6. Score test set -> predictions.json:")
-    predictions = score_test(store, best, feats)
+    print("6. Conformal calibration on held-out engines (90% intervals):")
+    bands = fit_conformal(y_val, best.predict(X_val), alpha=0.10)
+    for b in bands:
+        hi = "inf" if b["hi"] == float("inf") else f"{b['hi']:.0f}"
+        print(f"    pred in [{b['lo']:.0f}, {hi}): "
+              f"[{b['adj_lo']:+.1f}, {b['adj_hi']:+.1f}]  (n={b['n']})")
+
+    print("7. Score test set -> predictions.json:")
+    predictions = score_test(store, best, feats, bands)
     store.write_json(predictions, f"{PREDICTIONS}/predictions.json")
     store.dump(best, f"{PROCESSED}/model.joblib")
+    store.dump(bands, f"{PROCESSED}/conformal.joblib")
 
     n_maint = sum(p["status"] == "MAINTENANCE_REQUIRED" for p in predictions)
     n_warn = sum(p["status"] == "WARNING" for p in predictions)
