@@ -4,6 +4,7 @@ import { STATUS } from "./config";
 import CategoryTabs from "./components/CategoryTabs";
 import FleetGrid from "./components/FleetGrid";
 import EngineDetail from "./components/EngineDetail";
+import ModelHealth from "./components/ModelHealth";
 import "./App.css";
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   // which status band is expanded; null means the collapsed landing view
   const [activeStatus, setActiveStatus] = useState(null);
+  const [view, setView] = useState("fleet"); // "fleet" | "health"
 
   useEffect(() => {
     fetchPredictions()
@@ -65,18 +67,41 @@ export default function App() {
   return (
     <div className="app">
       <header className="head">
-        <h1>Fleet</h1>
+        <h1>{view === "fleet" ? "Fleet" : "Model health"}</h1>
         <p className="sub">
-          {loading || error
-            ? "Turbofan engines · predicted remaining useful life"
-            : `${engines.length} turbofan engines · predicted remaining useful life`}
+          {view === "health"
+            ? "How far the predictions can be trusted"
+            : loading || error
+              ? "Turbofan engines · predicted remaining useful life"
+              : `${engines.length} turbofan engines · predicted remaining useful life`}
         </p>
       </header>
 
-      {loading && <p className="msg">Loading fleet…</p>}
-      {error && <p className="msg error">Couldn’t load data — {error}</p>}
+      <nav className="nav">
+        <button
+          className={`nav-item${view === "fleet" ? " active" : ""}`}
+          aria-current={view === "fleet"}
+          onClick={() => setView("fleet")}
+        >
+          Fleet
+        </button>
+        <button
+          className={`nav-item${view === "health" ? " active" : ""}`}
+          aria-current={view === "health"}
+          onClick={() => setView("health")}
+        >
+          Model health
+        </button>
+      </nav>
 
-      {!loading && !error && (
+      {view === "health" && <ModelHealth />}
+
+      {view === "fleet" && loading && <p className="msg">Loading fleet…</p>}
+      {view === "fleet" && error && (
+        <p className="msg error">Couldn’t load data — {error}</p>
+      )}
+
+      {view === "fleet" && !loading && !error && (
         <>
           <CategoryTabs
             counts={counts}

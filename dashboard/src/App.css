@@ -21,6 +21,203 @@
   letter-spacing: -0.01em;
 }
 
+/* ============ top-level nav ============ */
+.nav {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 32px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 12px;
+  width: fit-content;
+}
+.nav-item {
+  border: none;
+  background: transparent;
+  border-radius: 9px;
+  padding: 7px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-2);
+  transition: background 0.15s, color 0.15s;
+}
+.nav-item:hover { color: var(--text); }
+.nav-item.active {
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ============ model health ============ */
+.health-section {
+  margin-bottom: 48px;
+}
+.subhead {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 28px 0 6px;
+}
+.note {
+  margin: 0 0 18px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--text-2);
+  max-width: 62ch;
+}
+.health-footnote {
+  margin: 0;
+  padding-top: 24px;
+  border-top: 1px solid var(--hairline);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-3);
+  max-width: 70ch;
+}
+.health-footnote code {
+  font-size: 0.95em;
+  color: var(--text-2);
+}
+
+/* stat tiles — the number IS the chart, so no plot around it */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.tile {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 22px 24px;
+  box-shadow: var(--shadow);
+}
+.tile-value {
+  font-size: 2.4rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.tile-label {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.tile-note {
+  margin-top: 5px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+/* ============ ranked bar list ============ */
+/* Grid rather than flex rows: it gives the threshold marker a column to sit in
+   that is geometrically identical to the bar tracks. */
+.bars {
+  --bar-label-w: 108px;
+  --bar-value-w: 92px;
+  --bars-pad-x: 22px;
+  --bars-pad-y: 18px;
+  --bars-gap: 12px;
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--bar-label-w) 1fr var(--bar-value-w);
+  align-items: center;
+  column-gap: var(--bars-gap);
+  row-gap: 8px;
+  background: var(--card);
+  border-radius: 20px;
+  padding: var(--bars-pad-y) var(--bars-pad-x);
+  box-shadow: var(--shadow);
+}
+.bar-row {
+  display: contents;
+}
+.bar-label {
+  font-size: 0.82rem;
+  color: var(--text-2);
+}
+.bar-track {
+  height: 10px;
+  display: flex;
+  align-items: center;
+}
+/* Overlays exactly the track column. Absolutely positioned, so it is out of
+   grid flow — as a real grid item it displaced every cell after it. */
+.bars-threshold-col {
+  position: absolute;
+  top: var(--bars-pad-y);
+  bottom: var(--bars-pad-y);
+  left: calc(var(--bars-pad-x) + var(--bar-label-w) + var(--bars-gap));
+  right: calc(var(--bars-pad-x) + var(--bar-value-w) + var(--bars-gap));
+  pointer-events: none;
+}
+.bar-mark {
+  height: 10px;
+  /* 4px rounded data-end, square against the baseline it grows from */
+  border-radius: 0 4px 4px 0;
+  transition: width 0.4s ease;
+}
+.bar-value {
+  width: var(--bar-value-w);
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.bar-value.flagged { color: var(--text); }
+/* the flag is why colour alone never carries the meaning here */
+.bar-flag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 100px;
+  background: #fff3e0;
+  color: #b45309;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  vertical-align: 1px;
+}
+.bars-threshold {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* dashed is right here: this genuinely is a threshold, not a gridline */
+  border-left: 1px dashed var(--text-3);
+  opacity: 0.75;
+}
+/* At the foot of the line: bars are sorted descending, so the shortest row is
+   here and the label has room. The surface chip keeps it legible even if a
+   future ordering puts a bar behind it. */
+.bars-threshold-label {
+  position: absolute;
+  bottom: -3px;
+  left: 5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--card);
+  font-size: 0.68rem;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+.chart-tau.faint { opacity: 0.35; }
+.chart-dot {
+  stroke: var(--card);
+  stroke-width: 2; /* 2px surface ring on overlapping markers */
+}
+
 /* ============ category tabs ============ */
 .tabs {
   display: grid;
@@ -298,6 +495,11 @@
 }
 .chart-tick-y { text-anchor: end; }
 .chart-tick-x { text-anchor: middle; }
+.chart-axis-title {
+  fill: var(--text-3);
+  font-size: 10px;
+  text-anchor: middle;
+}
 /* neutral, so the only colour in the plot is the prediction line itself */
 .chart-band {
   fill: var(--text);
