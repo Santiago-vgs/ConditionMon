@@ -20,6 +20,7 @@ Writes figures to docs/img/ and a metrics summary to docs/insights_metrics.json.
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -36,7 +37,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from conformal import RUL_CAP, apply_conformal, fit_conformal  # noqa: E402
 from features import feature_columns  # noqa: E402
-from storage import PROCESSED, Storage, from_args  # noqa: E402
+from storage import PREDICTIONS, PROCESSED, RAW, Storage, from_args  # noqa: E402
 from train import ID_COL, CYCLE_COL, TARGET, VAL_FROM_ENGINE, engine_split, rmse  # noqa: E402
 
 IMG = ROOT / "docs" / "img"
@@ -154,8 +155,10 @@ def threshold_sweep(val: pd.DataFrame, pred_col: str) -> dict:
     (waste a 50-cycle margin ~= pay for one extra shop visit)."""
     taus = np.arange(5, 81, 1)
     c_waste = 0.02
+    # x-axis shared by every curve, kept beside the per-ratio results rather
+    # than mixed in with them
+    results = {"taus": [int(t) for t in taus], "ratios": {}}
     fig, ax = plt.subplots(figsize=(8.5, 4.6))
-    results = {}
     for c_fail, color in [(10, GREEN), (50, ORANGE), (100, RED)]:
         costs = []
         for tau in taus:
@@ -166,7 +169,13 @@ def threshold_sweep(val: pd.DataFrame, pred_col: str) -> dict:
             costs.append(cost / sim["n"])
         costs = np.array(costs)
         best = int(taus[np.argmin(costs)])
-        results[c_fail] = {"best_tau": best, "cost": round(float(costs.min()), 2)}
+        # the curve itself, not just its minimum: the dashboard redraws this so
+        # the choice of τ is visible as a trade-off rather than asserted as a number
+        results["ratios"][c_fail] = {
+            "best_tau": best,
+            "cost": round(float(costs.min()), 2),
+            "curve": [round(float(c), 3) for c in costs],
+        }
         ax.plot(taus, costs, color=color, lw=2, label=f"failure = {c_fail}x maintenance")
         ax.scatter([best], [costs.min()], color=color, zorder=3)
         ax.annotate(f"τ={best}", (best, costs.min()), textcoords="offset points",
@@ -249,7 +258,12 @@ def drift_check(train: pd.DataFrame, test: pd.DataFrame, sensors: list[str]) -> 
 
 # ---------------------------------------------------------------------------
 def main() -> None:
-    store: Storage = from_args(False)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--s3", action="store_true",
+                        help="read data and publish metrics.json to S3")
+    parser.add_argument("--bucket", help="override S3 bucket name")
+    args = parser.parse_args()
+    store: Storage = from_args(args.s3, args.bucket)
     df = store.read_parquet(f"{PROCESSED}/train.parquet")
     test = store.read_parquet(f"{PROCESSED}/test.parquet")
     kept = store.load(f"{PROCESSED}/kept_sensors.joblib")
@@ -266,8 +280,9 @@ def main() -> None:
     for k, v in band_rmse.items():
         print(f"    RUL {k:>7}: {v:.2f}")
 
-    # test-set truth: RUL_FD001.txt gives true remaining life at each engine's last cycle
-    y_test = pd.read_csv(ROOT / "data/raw/RUL_FD001.txt", header=None)[0].to_numpy(float)
+    # test-set truth: RUL_FD001.txt gives true remaining life at each engine's last cycle.
+    # Read through the store, so --s3 doesn't need a local copy of the raw data.
+    y_test = store.read_csv(f"{RAW}/RUL_FD001.txt", header=None)[0].to_numpy(float)
     last = test.sort_values(CYCLE_COL).groupby(ID_COL).tail(1).sort_values(ID_COL)
     pred_test = model.predict(last[feats]).astype(float)
 
@@ -284,10 +299,10 @@ def main() -> None:
 
     print("\n3. Cost-optimal alert threshold (sweep on validation engines):")
     sweep = threshold_sweep(val, "pred")
-    for c_fail, r in sweep.items():
+    for c_fail, r in sweep["ratios"].items():
         print(f"    failure {c_fail:>3}x maintenance -> best τ={r['best_tau']}, "
               f"cost {r['cost']}/engine")
-    tau_star = sweep[50]["best_tau"]
+    tau_star = sweep["ratios"][50]["best_tau"]
 
     print(f"\n   Backtest at τ={tau_star}:")
     bt = backtest_figure(val, "pred", tau_star)
@@ -305,13 +320,23 @@ def main() -> None:
         "rmse_by_band": band_rmse,
         "conformal": conf,
         "phm08_total": round(score, 1),
-        "threshold_sweep": {str(k): v for k, v in sweep.items()},
+        "threshold_sweep": {
+            "taus": sweep["taus"],
+            "ratios": {str(k): v for k, v in sweep["ratios"].items()},
+        },
         "backtest": bt,
         "psi": drift,
+        "min_actionable_lead": MIN_ACTIONABLE_LEAD,
+        "n_test_engines": int(len(y_test)),
     }
     out = ROOT / "docs" / "insights_metrics.json"
     out.write_text(json.dumps(metrics, indent=2))
-    print(f"\nWrote 5 figures to docs/img/ and metrics to {out.relative_to(ROOT)}")
+
+    # Also publish to the gold layer, so the dashboard reads these numbers from
+    # the same API as everything else instead of a copy pasted into the frontend.
+    store.write_json(metrics, f"{PREDICTIONS}/metrics.json")
+    print(f"\nWrote 5 figures to docs/img/, metrics to {out.relative_to(ROOT)}")
+    print(f"   and to {store.path(PREDICTIONS, 'metrics.json')}")
 
 
 if __name__ == "__main__":
