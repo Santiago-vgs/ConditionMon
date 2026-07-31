@@ -1,21 +1,37 @@
-import { STATUS, RUL_MAX } from "../config";
+import { useEffect, useState } from "react";
+import { fetchHistory } from "../api";
+import { STATUS } from "../config";
+import DegradationChart from "./DegradationChart";
 
-// Detail sheet for a selected engine. The API exposes the prediction at the
-// engine's latest cycle (not full sensor history), so we show RUL as an
-// Activity-ring-style gauge (fraction of the 125-cycle cap) — an honest view of
-// the data we have. Per-cycle trends would need a second endpoint.
+// Detail sheet for a selected engine. The headline number comes from the fleet
+// snapshot that's already in memory; the degradation history is a second,
+// per-engine request fired when the sheet opens, so the fleet view stays cheap
+// and only the engines someone actually looks at cost a fetch.
 export default function EngineDetail({ engine, onClose }) {
+  const [history, setHistory] = useState(null);
+  const [historyError, setHistoryError] = useState(null);
+  const engineId = engine?.engine_id;
+
+  useEffect(() => {
+    if (engineId == null) return;
+    let cancelled = false; // clicking through engines fast must not paint stale data
+    setHistory(null);
+    setHistoryError(null);
+    fetchHistory(engineId)
+      .then((data) => !cancelled && setHistory(data))
+      .catch((err) => !cancelled && setHistoryError(err.message));
+    return () => {
+      cancelled = true;
+    };
+  }, [engineId]);
+
   if (!engine) return null;
   const meta = STATUS[engine.status] ?? STATUS.OK;
-
-  const frac = Math.min(1, engine.predicted_rul / RUL_MAX);
-  const R = 52;
-  const C = 2 * Math.PI * R;
   const hasRange = engine.rul_low != null && engine.rul_high != null;
 
   return (
     <div className="sheet-overlay" onClick={onClose}>
-      <div className="sheet" onClick={(ev) => ev.stopPropagation()}>
+      <div className="sheet sheet-wide" onClick={(ev) => ev.stopPropagation()}>
         <button className="close" onClick={onClose} aria-label="Close">
           ×
         </button>
@@ -27,24 +43,25 @@ export default function EngineDetail({ engine, onClose }) {
           </span>
         </div>
 
-        <div className="ring-wrap">
-          <svg className="ring" viewBox="0 0 120 120" width="148" height="148">
-            <circle cx="60" cy="60" r={R} className="ring-track" />
-            <circle
-              cx="60"
-              cy="60"
-              r={R}
-              className="ring-fill"
-              stroke={meta.color}
-              strokeDasharray={C}
-              strokeDashoffset={C * (1 - frac)}
-            />
-          </svg>
-          <div className="ring-center">
-            <div className="ring-num">{engine.predicted_rul}</div>
-            <div className="ring-unit">cycles left</div>
-          </div>
+        <div className="sheet-headline">
+          <span className="sheet-headline-num" style={{ color: meta.color }}>
+            {engine.predicted_rul}
+          </span>
+          <span className="sheet-headline-unit">cycles left</span>
         </div>
+
+        {history ? (
+          <DegradationChart
+            points={history.points}
+            label={`engine ${engine.engine_id}`}
+          />
+        ) : (
+          <div className={`chart-placeholder${historyError ? " error" : ""}`}>
+            {historyError
+              ? `Couldn’t load history — ${historyError}`
+              : "Loading history…"}
+          </div>
+        )}
 
         <dl className="sheet-stats">
           <div>
