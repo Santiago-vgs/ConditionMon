@@ -11,6 +11,10 @@ maintenance project. Fetches the fleet's `predictions.json` from the API and sho
 - **Engine detail** — click an engine for its full degradation history: predicted
   RUL per cycle with its 90% conformal band, the true RUL for comparison, and the
   cost-optimal alert threshold τ. Hover any cycle to read the numbers.
+- **Model health** — the second top-level view: interval coverage, error by RUL
+  band, the alert-threshold cost sweep, the backtest, and PSI drift per sensor.
+  These come from `src/insights.py` via `GET /metrics`, so the page reports what
+  the pipeline last measured rather than numbers copied into the frontend.
 
 ## Develop
 

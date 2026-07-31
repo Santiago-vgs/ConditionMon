@@ -69,16 +69,17 @@ python src/download_data.py  # fetch NASA C-MAPSS FD001
 python src/etl.py            # data/raw  → data/processed
 python src/train.py          # data/processed → data/predictions/predictions.json
 python src/history.py        # per-cycle histories → data/predictions/history/
-python src/insights.py       # evaluation suite → docs/img/ + docs/insights_metrics.json
+python src/insights.py       # evaluation suite → docs/img/ + metrics.json (gold layer)
 
-python src/etl.py     --s3   # same pipeline against S3
-python src/train.py   --s3
-python src/history.py --s3
+python src/etl.py      --s3  # same pipeline against S3
+python src/train.py    --s3
+python src/history.py  --s3
+python src/insights.py --s3
 
 cd dashboard && npm install && npm run dev
 ```
 
-AWS setup (bucket, IAM user, API deploy) is documented in [`docs/AWS_SETUP.md`](docs/AWS_SETUP.md). The API deploys with `python api/deploy.py` and serves two routes: `GET /predictions` for the fleet snapshot and `GET /history?engine=<id>` for one engine's per-cycle degradation history.
+AWS setup (bucket, IAM user, API deploy) is documented in [`docs/AWS_SETUP.md`](docs/AWS_SETUP.md). The API deploys with `python api/deploy.py` and serves three routes: `GET /predictions` for the fleet snapshot, `GET /history?engine=<id>` for one engine's per-cycle degradation history, and `GET /metrics` for the model-health figures the dashboard's second view reads.
 
 ## Repository layout
 
