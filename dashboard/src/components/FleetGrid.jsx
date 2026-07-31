@@ -3,6 +3,14 @@ import { STATUS, RUL_MAX } from "../config";
 // One soft white card per engine: name, status pill, the RUL figure, and a thin
 // rounded progress bar coloured by status. The lighter band on the bar is the
 // 90% prediction interval — how far off the estimate could plausibly be.
+//
+// Each card ends in an explicit "full analytics" cue. The card is a button and
+// opens the degradation chart, but nothing on it said so — the most substantial
+// view in the app was reachable only by guessing that a card was clickable.
+//
+// No status pill: the grid only ever shows one category at a time, so a pill on
+// every card would repeat the heading above it. The status colour moves to the
+// RUL figure, which is what the eye goes to anyway.
 export default function FleetGrid({ engines, onSelect, selectedId }) {
   return (
     <div className="fleet-grid">
@@ -20,16 +28,12 @@ export default function FleetGrid({ engines, onSelect, selectedId }) {
           >
             <div className="card-top">
               <span className="card-name">Engine {e.engine_id}</span>
-              <span
-                className="pill"
-                style={{ color: meta.color, background: meta.tint }}
-              >
-                {meta.label}
-              </span>
             </div>
 
             <div className="card-rul">
-              <span className="num">{e.predicted_rul}</span>
+              <span className="num" style={{ color: meta.color }}>
+                {e.predicted_rul}
+              </span>
               <span className="unit">cycles left</span>
             </div>
 
@@ -47,6 +51,10 @@ export default function FleetGrid({ engines, onSelect, selectedId }) {
                 style={{ width: `${pct}%`, background: meta.color }}
               />
             </div>
+
+            <span className="card-cta">
+              See full analytics <span aria-hidden="true">›</span>
+            </span>
           </button>
         );
       })}
