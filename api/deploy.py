@@ -31,12 +31,13 @@ REGION = "us-east-1"
 BUCKET = "svargas-turbofan-pm"
 KEY = "predictions/predictions.json"
 HISTORY_PREFIX = "predictions/history"
+METRICS_KEY = "predictions/metrics.json"
 
 PREFIX = "turbofan-predictions"
 ROLE_NAME = f"{PREFIX}-lambda-role"
 FUNCTION_NAME = f"{PREFIX}-api"
 API_NAME = f"{PREFIX}-http-api"
-ROUTES = ("GET /predictions", "GET /history")
+ROUTES = ("GET /predictions", "GET /history", "GET /metrics")
 HANDLER_FILE = Path(__file__).resolve().parent / "handler.py"
 
 iam = boto3.client("iam", region_name=REGION)
@@ -71,6 +72,7 @@ def s3_read_policy() -> dict:
                 "Resource": [
                     f"arn:aws:s3:::{BUCKET}/{KEY}",
                     f"arn:aws:s3:::{BUCKET}/{HISTORY_PREFIX}/*",
+                    f"arn:aws:s3:::{BUCKET}/{METRICS_KEY}",
                 ],
             },
             {
@@ -115,6 +117,7 @@ def ensure_function(role_arn: str) -> str:
     code = zip_handler()
     env = {"Variables": {
         "BUCKET": BUCKET, "KEY": KEY, "HISTORY_PREFIX": HISTORY_PREFIX,
+        "METRICS_KEY": METRICS_KEY,
     }}
     try:
         fn = lam.create_function(
@@ -214,6 +217,7 @@ def ensure_api(function_arn: str) -> str:
 
     base = f"https://{api_id}.execute-api.{REGION}.amazonaws.com"
     print(f"  history:     {base}/history?engine=1")
+    print(f"  metrics:     {base}/metrics")
     return f"{base}/predictions"
 
 

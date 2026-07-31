@@ -1,8 +1,9 @@
 """Lambda behind API Gateway: serve prediction data from the private S3 bucket.
 
-Two routes, one function:
+Three routes, one function:
     GET /predictions          the fleet snapshot (one row per engine)
     GET /history?engine=<id>  one engine's full per-cycle degradation history
+    GET /metrics              model-health metrics from insights.py
 
 The bucket stays fully private — only this function can read it (its execution
 role grants s3:GetObject under the predictions/ prefix, nothing else). The
@@ -17,6 +18,7 @@ Env vars (set at deploy time):
     BUCKET         the S3 bucket name
     KEY            fleet snapshot key (default: predictions/predictions.json)
     HISTORY_PREFIX per-engine history prefix (default: predictions/history)
+    METRICS_KEY    model-health metrics key (default: predictions/metrics.json)
 """
 
 from __future__ import annotations
@@ -31,6 +33,7 @@ s3 = boto3.client("s3")
 BUCKET = os.environ["BUCKET"]
 KEY = os.environ.get("KEY", "predictions/predictions.json")
 HISTORY_PREFIX = os.environ.get("HISTORY_PREFIX", "predictions/history").rstrip("/")
+METRICS_KEY = os.environ.get("METRICS_KEY", "predictions/metrics.json")
 
 # CORS so a browser app on another origin (e.g. Vercel) can fetch this.
 HEADERS = {
@@ -41,9 +44,9 @@ HEADERS = {
     "Cache-Control": "no-cache",
 }
 
-# A given engine's history only changes when the pipeline reruns, so unlike the
-# fleet snapshot it is worth letting the browser hold on to.
-HISTORY_HEADERS = {**HEADERS, "Cache-Control": "public, max-age=3600"}
+# History and metrics only change when the pipeline reruns, so unlike the fleet
+# snapshot they are worth letting the browser hold on to.
+CACHEABLE_HEADERS = {**HEADERS, "Cache-Control": "public, max-age=3600"}
 
 
 def _response(status: int, body: str, headers: dict | None = None) -> dict:
@@ -74,9 +77,11 @@ def handler(event, context):  # noqa: ANN001 (AWS signature)
 
     if path.endswith("/history"):
         try:
-            key, headers = _history_key(event), HISTORY_HEADERS
+            key, headers = _history_key(event), CACHEABLE_HEADERS
         except ValueError as exc:
             return _error(400, str(exc))
+    elif path.endswith("/metrics"):
+        key, headers = METRICS_KEY, CACHEABLE_HEADERS
     else:
         key, headers = KEY, HEADERS
 
