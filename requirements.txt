@@ -20,3 +20,7 @@ botocore==1.43.0
 # data download (TLS cert bundle for the NASA fetch)
 certifi==2026.6.17
 requests==2.34.2
+
+# figures — src/insights.py imports this at module level, so it is a runtime
+# dependency of the pipeline, not a notebook extra
+matplotlib==3.11.0
