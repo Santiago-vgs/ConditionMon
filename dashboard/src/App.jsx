@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchPredictions } from "./api";
 import { STATUS } from "./config";
+import CategoryTabs from "./components/CategoryTabs";
 import FleetGrid from "./components/FleetGrid";
-import AlertPanel from "./components/AlertPanel";
 import EngineDetail from "./components/EngineDetail";
 import "./App.css";
 
@@ -11,16 +11,23 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
+  // which status band is expanded; null means the collapsed landing view
+  const [activeStatus, setActiveStatus] = useState(null);
 
   useEffect(() => {
     fetchPredictions()
       .then((data) => {
         setEngines(data);
-        // deep link: #engine-34 opens that engine's sheet directly
+        // deep link: #engine-34 opens that engine's sheet directly. Expand its
+        // band too, so closing the sheet lands on a list containing it rather
+        // than on the empty landing view.
         const m = window.location.hash.match(/^#engine-(\d+)$/);
         if (m) {
           const hit = data.find((e) => e.engine_id === Number(m[1]));
-          if (hit) setSelected(hit);
+          if (hit) {
+            setSelected(hit);
+            setActiveStatus(hit.status);
+          }
         }
       })
       .catch((e) => setError(e.message))
@@ -35,67 +42,80 @@ export default function App() {
     window.history.replaceState(null, "", url);
   };
 
-  const sorted = useMemo(
-    () =>
-      [...engines].sort(
-        (a, b) =>
-          (STATUS[a.status]?.order ?? 9) - (STATUS[b.status]?.order ?? 9) ||
-          a.predicted_rul - b.predicted_rul
-      ),
-    [engines]
-  );
-
   const counts = useMemo(() => {
     const c = { MAINTENANCE_REQUIRED: 0, WARNING: 0, OK: 0 };
     engines.forEach((e) => (c[e.status] = (c[e.status] ?? 0) + 1));
     return c;
   }, [engines]);
 
+  // Only the expanded band, most urgent first. Sorting by RUL rather than id
+  // means the engine to act on first is the one read first.
+  const visible = useMemo(
+    () =>
+      activeStatus === null
+        ? []
+        : engines
+            .filter((e) => e.status === activeStatus)
+            .sort((a, b) => a.predicted_rul - b.predicted_rul),
+    [engines, activeStatus]
+  );
+
+  const meta = activeStatus ? STATUS[activeStatus] : null;
+
   return (
     <div className="app">
       <header className="head">
         <h1>Fleet</h1>
-        <p className="sub">Turbofan engines · predicted remaining useful life</p>
+        <p className="sub">
+          {loading || error
+            ? "Turbofan engines · predicted remaining useful life"
+            : `${engines.length} turbofan engines · predicted remaining useful life`}
+        </p>
       </header>
-
-      {!loading && !error && (
-        <div className="summary">
-          <Stat label="Engines" value={engines.length} color="var(--text)" />
-          <Stat label="Maintenance" value={counts.MAINTENANCE_REQUIRED} color="var(--red)" />
-          <Stat label="Warning" value={counts.WARNING} color="var(--orange)" />
-          <Stat label="Healthy" value={counts.OK} color="var(--green)" />
-        </div>
-      )}
 
       {loading && <p className="msg">Loading fleet…</p>}
       {error && <p className="msg error">Couldn’t load data — {error}</p>}
 
       {!loading && !error && (
-        <div className="layout">
-          <main>
-            <h2 className="section">All engines</h2>
-            <FleetGrid
-              engines={sorted}
-              onSelect={select}
-              selectedId={selected?.engine_id}
-            />
-          </main>
-          <AlertPanel engines={engines} onSelect={select} />
-        </div>
+        <>
+          <CategoryTabs
+            counts={counts}
+            active={activeStatus}
+            onSelect={setActiveStatus}
+          />
+
+          <section
+            id="engine-panel"
+            aria-labelledby={activeStatus ? `tab-${activeStatus}` : undefined}
+          >
+            {activeStatus === null ? (
+              <p className="panel-hint">
+                Choose a category above to see the engines in it.
+              </p>
+            ) : visible.length === 0 ? (
+              <p className="panel-hint">
+                No engines are currently {meta.label.toLowerCase()}.
+              </p>
+            ) : (
+              <>
+                <h2 className="section">
+                  {meta.label}
+                  <span className="section-count">
+                    {visible.length} {visible.length === 1 ? "engine" : "engines"}
+                  </span>
+                </h2>
+                <FleetGrid
+                  engines={visible}
+                  onSelect={select}
+                  selectedId={selected?.engine_id}
+                />
+              </>
+            )}
+          </section>
+        </>
       )}
 
       <EngineDetail engine={selected} onClose={() => select(null)} />
-    </div>
-  );
-}
-
-function Stat({ label, value, color }) {
-  return (
-    <div className="stat">
-      <div className="stat-value" style={{ color }}>
-        {value}
-      </div>
-      <div className="stat-label">{label}</div>
     </div>
   );
 }

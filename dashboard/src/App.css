@@ -21,52 +21,83 @@
   letter-spacing: -0.01em;
 }
 
-/* ============ summary stat cards ============ */
-.summary {
+/* ============ category tabs ============ */
+.tabs {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
-  margin-bottom: 44px;
+  margin-bottom: 40px;
 }
 @media (max-width: 640px) {
-  .summary { grid-template-columns: repeat(2, 1fr); }
+  .tabs { grid-template-columns: 1fr; }
 }
-.stat {
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   background: var(--card);
+  border: none;
   border-radius: 20px;
-  padding: 22px 24px;
+  padding: 22px 24px 18px;
+  text-align: left;
   box-shadow: var(--shadow);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
-.stat-value {
+.tab:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+.tab.active {
+  transform: none;
+}
+.tab-count {
   font-size: 2.6rem;
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1;
 }
-.stat-label {
+.tab-label {
   margin-top: 8px;
-  font-size: 0.9rem;
-  color: var(--text-2);
+  font-size: 0.95rem;
+  font-weight: 500;
   letter-spacing: -0.01em;
+}
+.tab-detail {
+  font-size: 0.8rem;
+  color: var(--text-3);
+}
+.tab-cue {
+  margin-top: 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--accent);
 }
 
 /* ============ section heading ============ */
 .section {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
   font-size: 1.35rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   margin: 0 0 16px;
 }
-
-/* ============ layout ============ */
-.layout {
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 40px;
-  align-items: start;
+.section-count {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--text-3);
+  letter-spacing: -0.01em;
 }
-@media (max-width: 860px) {
-  .layout { grid-template-columns: 1fr; gap: 36px; }
+
+/* landing state: the panel is empty until a category is chosen */
+.panel-hint {
+  margin: 0;
+  padding: 56px 0;
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--text-3);
 }
 
 .msg {
@@ -157,60 +188,16 @@
   transition: width 0.4s ease;
 }
 
-/* ============ needs-attention list ============ */
-.alerts-card {
-  background: var(--card);
-  border-radius: 20px;
-  padding: 8px 8px;
-  box-shadow: var(--shadow);
-}
-.alerts ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.alerts li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 13px 14px;
-  border-radius: 14px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.alerts li:hover { background: var(--bg); }
-.dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.row-name {
-  flex: 1;
-  font-size: 0.95rem;
+/* the affordance for the detail sheet — without it the card looked inert */
+.card-cta {
+  display: block;
+  margin-top: 14px;
+  font-size: 0.78rem;
   font-weight: 500;
-  letter-spacing: -0.01em;
+  color: var(--accent);
 }
-.row-rul {
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.row-unit {
-  color: var(--text-3);
-  font-weight: 400;
-  font-size: 0.8rem;
-}
-.chev {
-  color: var(--text-3);
-  font-size: 1.2rem;
-  line-height: 1;
-}
-.empty {
-  color: var(--text-2);
-  font-size: 0.95rem;
-  padding: 16px 14px;
-  margin: 0;
+.card:hover .card-cta {
+  text-decoration: underline;
 }
 
 /* ============ detail sheet ============ */
