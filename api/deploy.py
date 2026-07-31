@@ -30,12 +30,13 @@ from botocore.exceptions import ClientError
 REGION = "us-east-1"
 BUCKET = "svargas-turbofan-pm"
 KEY = "predictions/predictions.json"
+HISTORY_PREFIX = "predictions/history"
 
 PREFIX = "turbofan-predictions"
 ROLE_NAME = f"{PREFIX}-lambda-role"
 FUNCTION_NAME = f"{PREFIX}-api"
 API_NAME = f"{PREFIX}-http-api"
-ROUTE = "GET /predictions"
+ROUTES = ("GET /predictions", "GET /history")
 HANDLER_FILE = Path(__file__).resolve().parent / "handler.py"
 
 iam = boto3.client("iam", region_name=REGION)
@@ -54,14 +55,23 @@ TRUST_POLICY = {
 
 
 def s3_read_policy() -> dict:
-    """Least privilege: read exactly one object, plus write CloudWatch logs."""
+    """Least privilege: read the snapshot and the per-engine histories, plus
+    write CloudWatch logs.
+
+    The history grant has to be a prefix wildcard (one object per engine), so it
+    is scoped to `predictions/history/` alone rather than the whole bucket —
+    the raw data and model artifacts stay unreadable by this function.
+    """
     return {
         "Version": "2012-10-17",
         "Statement": [
             {
                 "Effect": "Allow",
                 "Action": "s3:GetObject",
-                "Resource": f"arn:aws:s3:::{BUCKET}/{KEY}",
+                "Resource": [
+                    f"arn:aws:s3:::{BUCKET}/{KEY}",
+                    f"arn:aws:s3:::{BUCKET}/{HISTORY_PREFIX}/*",
+                ],
             },
             {
                 "Effect": "Allow",
@@ -103,7 +113,9 @@ def zip_handler() -> bytes:
 
 def ensure_function(role_arn: str) -> str:
     code = zip_handler()
-    env = {"Variables": {"BUCKET": BUCKET, "KEY": KEY}}
+    env = {"Variables": {
+        "BUCKET": BUCKET, "KEY": KEY, "HISTORY_PREFIX": HISTORY_PREFIX,
+    }}
     try:
         fn = lam.create_function(
             FunctionName=FUNCTION_NAME,
@@ -164,9 +176,12 @@ def ensure_api(function_arn: str) -> str:
         print(f"  reusing integration {integration}")
 
     routes = {r["RouteKey"]: r for r in api.get_routes(ApiId=api_id)["Items"]}
-    if ROUTE not in routes:
-        api.create_route(ApiId=api_id, RouteKey=ROUTE, Target=f"integrations/{integration}")
-        print(f"  created route {ROUTE}")
+    for route in ROUTES:
+        if route in routes:
+            print(f"  route {route} already exists")
+            continue
+        api.create_route(ApiId=api_id, RouteKey=route, Target=f"integrations/{integration}")
+        print(f"  created route {route}")
 
     # auto-deploy default stage
     try:
@@ -188,7 +203,9 @@ def ensure_api(function_arn: str) -> str:
     except lam.exceptions.ResourceConflictException:
         pass
 
-    return f"https://{api_id}.execute-api.{REGION}.amazonaws.com/predictions"
+    base = f"https://{api_id}.execute-api.{REGION}.amazonaws.com"
+    print(f"  history:     {base}/history?engine=1")
+    return f"{base}/predictions"
 
 
 # ------------------------------------------------------------------ teardown
