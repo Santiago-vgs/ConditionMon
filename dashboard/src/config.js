@@ -11,6 +11,9 @@ export const API_URL =
 const HISTORY_TEMPLATE =
   import.meta.env.VITE_HISTORY_URL || API_URL.replace(/\/predictions$/, "/history");
 
+export const METRICS_URL =
+  import.meta.env.VITE_METRICS_URL || API_URL.replace(/\/predictions$/, "/metrics");
+
 export function historyUrl(engineId) {
   return HISTORY_TEMPLATE.includes("{id}")
     ? HISTORY_TEMPLATE.replace("{id}", engineId)
@@ -34,3 +37,12 @@ export const TAU = 23;
 
 // RUL is trained with a piecewise-linear cap at 125, so that's our gauge max.
 export const RUL_MAX = 125;
+
+// A PSI above this is the conventional "distribution has moved enough to
+// investigate" line.
+export const PSI_THRESHOLD = 0.25;
+
+// Ordinal ramp for the cost-ratio curves — one hue, light→dark, because the
+// ratios are ordered (10 < 50 < 100), not nominal. Validated against the light
+// surface for monotone lightness, step separation and light-end contrast.
+export const RAMP = ["#74a9e6", "#0071e3", "#00396e"];

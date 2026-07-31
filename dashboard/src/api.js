@@ -1,4 +1,4 @@
-import { API_URL, historyUrl } from "./config";
+import { API_URL, historyUrl, METRICS_URL } from "./config";
 
 async function getJson(url) {
   const res = await fetch(url);
@@ -21,6 +21,12 @@ export async function fetchPredictions() {
 // Responses are cached for the session — a history only changes when the
 // pipeline reruns, and reopening the same engine is the common case.
 const cache = new Map();
+
+// Model-health metrics written by insights.py: interval coverage, error by RUL
+// band, the alert-threshold cost sweep, backtest results and PSI drift.
+export async function fetchMetrics() {
+  return getJson(METRICS_URL);
+}
 
 export async function fetchHistory(engineId) {
   if (!cache.has(engineId)) {
