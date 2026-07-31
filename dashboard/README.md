@@ -3,11 +3,14 @@
 React + Vite frontend for the [ConditionMon](../README.md) turbofan predictive-
 maintenance project. Fetches the fleet's `predictions.json` from the API and shows:
 
-- **Fleet grid** — one card per engine, coloured by status (OK / Warning / Maintenance).
+- **Categories** — the landing view is three counts, one per status band
+  (Maintenance / Warning / Healthy). Showing all 100 engines at once buried the
+  urgent handful in the healthy majority, so the list stays collapsed until a
+  category is chosen.
+- **Engine list** — the chosen category only, most urgent first.
 - **Engine detail** — click an engine for its full degradation history: predicted
   RUL per cycle with its 90% conformal band, the true RUL for comparison, and the
   cost-optimal alert threshold τ. Hover any cycle to read the numbers.
-- **Alert panel** — engines below threshold, sorted by urgency.
 
 ## Develop
 
