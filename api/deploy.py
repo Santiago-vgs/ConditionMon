@@ -189,19 +189,28 @@ def ensure_api(function_arn: str) -> str:
     except ClientError:
         pass  # stage already exists
 
-    # allow API Gateway to invoke the function
+    # Allow API Gateway to invoke the function on any route of *this* api. An
+    # earlier version pinned this to /predictions, which silently 403s every
+    # route added later — so on conflict the old statement is replaced rather
+    # than left in place.
     account = sts.get_caller_identity()["Account"]
-    source_arn = f"arn:aws:execute-api:{REGION}:{account}:{api_id}/*/*/predictions"
-    try:
-        lam.add_permission(
-            FunctionName=FUNCTION_NAME,
-            StatementId=f"{PREFIX}-apigw-invoke",
-            Action="lambda:InvokeFunction",
-            Principal="apigateway.amazonaws.com",
-            SourceArn=source_arn,
-        )
-    except lam.exceptions.ResourceConflictException:
-        pass
+    source_arn = f"arn:aws:execute-api:{REGION}:{account}:{api_id}/*/*"
+    statement_id = f"{PREFIX}-apigw-invoke"
+    for attempt in (1, 2):
+        try:
+            lam.add_permission(
+                FunctionName=FUNCTION_NAME,
+                StatementId=statement_id,
+                Action="lambda:InvokeFunction",
+                Principal="apigateway.amazonaws.com",
+                SourceArn=source_arn,
+            )
+            break
+        except lam.exceptions.ResourceConflictException:
+            if attempt == 2:
+                raise
+            lam.remove_permission(FunctionName=FUNCTION_NAME, StatementId=statement_id)
+            print("  replaced stale invoke permission")
 
     base = f"https://{api_id}.execute-api.{REGION}.amazonaws.com"
     print(f"  history:     {base}/history?engine=1")
