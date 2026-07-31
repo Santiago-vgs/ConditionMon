@@ -25,6 +25,7 @@ import json
 import os
 
 import boto3
+from botocore.exceptions import ClientError
 
 s3 = boto3.client("s3")
 BUCKET = os.environ["BUCKET"]
@@ -82,7 +83,17 @@ def handler(event, context):  # noqa: ANN001 (AWS signature)
     try:
         obj = s3.get_object(Bucket=BUCKET, Key=key)
         return _response(200, obj["Body"].read().decode("utf-8"), headers)
-    except s3.exceptions.NoSuchKey:
-        return _error(404, f"{key} not found — run train.py --s3 / history.py --s3 first")
-    except Exception as exc:  # noqa: BLE001 — surface any AWS error as JSON
-        return _error(500, str(exc))
+    except ClientError as exc:
+        # The role deliberately has no s3:ListBucket, so S3 answers AccessDenied
+        # rather than NoSuchKey for a key that isn't there — an unknown engine id
+        # arrives here, not in a 404 branch keyed on NoSuchKey.
+        code = exc.response.get("Error", {}).get("Code", "")
+        print(f"s3 get_object failed for {key}: {code}: {exc}")  # -> CloudWatch
+        if code in ("NoSuchKey", "AccessDenied", "NoSuchBucket", "404"):
+            return _error(404, "not found")
+        return _error(500, "internal error")
+    except Exception as exc:  # noqa: BLE001
+        # Never echo the raw error: it carries the account id, role ARN and
+        # bucket name, and this endpoint is public.
+        print(f"unexpected error serving {key}: {exc!r}")  # -> CloudWatch
+        return _error(500, "internal error")
