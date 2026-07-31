@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/Santiago-vgs/ConditionMon/actions/workflows/ci.yml/badge.svg)](https://github.com/Santiago-vgs/ConditionMon/actions/workflows/ci.yml)
 
+**Live dashboard:** [dashboard-nine-psi-65.vercel.app](https://dashboard-nine-psi-65.vercel.app) — reads from the deployed API on AWS.
+
 The goal of this project is to estimate the Remaining Useful Life (RUL) of turbofan jet engines from sensor data. RUL is the number of operating cycles an engine has left before it needs maintenance. Predicting it lets you schedule servicing late enough to use most of a part's life, but early enough to avoid an in-flight failure.
 
 The repository covers the full path from raw data to a deployed service: an ETL and training pipeline, a serverless inference API, and a React dashboard showing predictions across a fleet. The pipeline runs against local disk or an S3 bucket depending on a single `--s3` flag.
@@ -17,9 +19,9 @@ NASA's C-MAPSS turbofan degradation dataset, FD001 subset (High-Pressure Compres
  ┌───────────────┐       ┌────────────────────┐          ┌────────────────────┐
  │ *_FD001.txt   │       │ train/test.parquet │          │ predictions.json   │
  │ (NASA C-MAPSS)│──────▶│ scaler.joblib      │─────────▶│ model.joblib       │
- │               │ etl.py│ kept_sensors.joblib│ train.py │                    │
+ │               │ etl.py│ kept_sensors.joblib│ train.py │ history/engine_*.json
  └───────────────┘       └────────────────────┘          └─────────┬──────────┘
-        same code runs on local disk OR s3:// (one --s3 flag)      │
+        same code runs on local disk OR s3:// (one --s3 flag)      │ history.py
                                                                     ▼
                                        API Gateway + Lambda  ──▶  React dashboard
 ```
@@ -66,15 +68,17 @@ python src/download_data.py  # fetch NASA C-MAPSS FD001
 
 python src/etl.py            # data/raw  → data/processed
 python src/train.py          # data/processed → data/predictions/predictions.json
+python src/history.py        # per-cycle histories → data/predictions/history/
 python src/insights.py       # evaluation suite → docs/img/ + docs/insights_metrics.json
 
-python src/etl.py   --s3     # same pipeline against S3
-python src/train.py --s3
+python src/etl.py     --s3   # same pipeline against S3
+python src/train.py   --s3
+python src/history.py --s3
 
 cd dashboard && npm install && npm run dev
 ```
 
-AWS setup (bucket, IAM user, API deploy) is documented in [`docs/AWS_SETUP.md`](docs/AWS_SETUP.md). The API deploys with `python api/deploy.py`.
+AWS setup (bucket, IAM user, API deploy) is documented in [`docs/AWS_SETUP.md`](docs/AWS_SETUP.md). The API deploys with `python api/deploy.py` and serves two routes: `GET /predictions` for the fleet snapshot and `GET /history?engine=<id>` for one engine's per-cycle degradation history.
 
 ## Repository layout
 
